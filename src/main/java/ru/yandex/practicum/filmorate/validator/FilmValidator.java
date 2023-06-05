@@ -16,8 +16,6 @@ public class FilmValidator implements Validator<Film> {
             return false;
         if (film.getReleaseDate().isBefore(CINEMA_BIRTHDAY))
             return false;
-        if (film.getDuration() <= 0)
-            return false;
-        return true;
+        return film.getDuration() > 0;
     }
 }

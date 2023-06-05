@@ -8,8 +8,9 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.validator.FilmValidator;
 
 import javax.validation.Valid;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -41,7 +42,7 @@ public class FilmController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         }
 
-        if (film.getId() <= 0 || !films.containsKey(film.getId())) {
+        if (!films.containsKey(film.getId())) {
             log.warn("Invalid id " + film);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
@@ -51,8 +52,8 @@ public class FilmController {
     }
 
     @GetMapping
-    public Collection<Film> getFilms() {
+    public List<Film> getFilms() {
         log.info("Sent film collection");
-        return films.values();
+        return new ArrayList<>(films.values());
     }
 }

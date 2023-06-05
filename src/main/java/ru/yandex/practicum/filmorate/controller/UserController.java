@@ -8,8 +8,9 @@ import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.validator.UserValidator;
 
 import javax.validation.Valid;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -40,7 +41,7 @@ public class UserController {
             log.warn("Invalid object " + user);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         }
-        if (user.getId() <= 0 || !users.containsKey(user.getId())) {
+        if (!users.containsKey(user.getId())) {
             log.warn("Invalid id " + user);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
@@ -50,8 +51,8 @@ public class UserController {
     }
 
     @GetMapping
-    public Collection<User> getUsers() {
+    public List<User> getUsers() {
         log.info("Sent users collection");
-        return users.values();
+        return new ArrayList<>(users.values());
     }
 }
