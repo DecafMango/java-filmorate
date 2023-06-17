@@ -1,23 +1,23 @@
 package ru.yandex.practicum.filmorate.validator;
 
+import org.springframework.stereotype.Component;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
 
+@Component
 public class UserValidator implements Validator<User> {
 
     @Override
-    public boolean validate(User user) {
+    public void validate(User user) {
         if (user.getLogin().contains(" "))
-            return false;
+            throw new ValidationException("Логин пользователя не должен содержать пробелов");
         if (user.getBirthday().isAfter(LocalDate.now()))
-            return false;
-
-        //Todo Спросить у ревьюера, куда лучше присваивание имени поставить (потому что этот метод только для валидации)
+            throw new ValidationException("День рождения пользователя не должен быть в будущем");
+        //Это участок кода отвечает за выдачу имени пользователю при отсутствии имени
         if (user.getName() == null || user.getName().isBlank())
             user.setName(user.getLogin());
-
-        return true;
     }
 
 }

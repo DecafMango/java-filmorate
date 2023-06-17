@@ -1,59 +1,66 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.service.FilmService;
 import ru.yandex.practicum.filmorate.validator.FilmValidator;
 
 import javax.validation.Valid;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/films")
 @Slf4j
 public class FilmController {
+    private final FilmService filmService;
+    private final FilmValidator filmValidator;
 
-    private Map<Integer, Film> films = new HashMap<>();
-    private final FilmValidator validator = new FilmValidator();
-    private int idCounter = 1;
+    @Autowired
+    public FilmController(FilmService filmService, FilmValidator filmValidator) {
+        this.filmService = filmService;
+        this.filmValidator = filmValidator;
+    }
+
+    @GetMapping("/{id}")
+    public Film getFilm(@PathVariable long id) {
+        return filmService.getFilm(id);
+    }
+
+    @GetMapping
+    public List<Film> getFilms() {
+        return new ArrayList<>(filmService.getFilms().values());
+    }
+
+    @GetMapping("/popular")
+    public List<Film> getPopularFilms(@RequestParam Optional<Long> count) {
+        return filmService.getPopularFilms(count);
+    }
 
     @PostMapping
     public Film createFilm(@Valid @RequestBody Film film) {
-        if (!validator.validate(film)) {
-            log.warn("Invalid " + film);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
-        }
-        film.setId(idCounter);
-        films.put(idCounter, film);
-        idCounter++;
-        log.info("Created " + film);
+        filmValidator.validate(film);
+        filmService.createFilm(film);
         return film;
     }
 
     @PutMapping
     public Film updateFilm(@Valid @RequestBody Film film) {
-        if (!validator.validate(film)) {
-            log.warn("Invalid " + film);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
-        }
-
-        if (!films.containsKey(film.getId())) {
-            log.warn("Invalid id " + film);
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        }
-        films.put(film.getId(), film);
-        log.info("Updated " + film);
+        filmValidator.validate(film);
+        filmService.updateFilm(film);
         return film;
     }
 
-    @GetMapping
-    public List<Film> getFilms() {
-        log.info("Sent film collection");
-        return new ArrayList<>(films.values());
+    @PutMapping("/{id}/like/{userId}")
+    public Film likeFilm(@PathVariable long id, @PathVariable long userId) {
+        return filmService.like(id, userId);
+    }
+
+    @DeleteMapping("/{id}/like/{userId}")
+    public Film dislikeFilm(@PathVariable long id, @PathVariable long userId) {
+        return filmService.dislike(id, userId);
     }
 }
