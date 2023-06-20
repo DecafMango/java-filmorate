@@ -50,9 +50,11 @@ public class FilmService {
 
     public List<Film> getPopularFilms(Optional<Long> count) {
         Collection<Film> films = filmStorage.getFilms().values();
-        log.info("Sent " + (count.isPresent() ? +count.get() : 10) + " popular films");
-        return films.stream().sorted((film1, film2) -> film2.getFans().size() - film1.getFans().size())
-                .limit(count.isPresent() ? count.get() : 10).collect(Collectors.toList());
+        log.info("Sent " + (count.isPresent() ? count.get() : 10) + " popular films");
+        return films.stream()
+                .sorted((film1, film2) -> film2.getFans().size() - film1.getFans().size())
+                .limit(count.isPresent() ? count.get() : 10)
+                .collect(Collectors.toList());
     }
 
     public Film like(long filmId, long userId) {
@@ -61,7 +63,8 @@ public class FilmService {
         if (!userStorage.getUsers().containsKey(userId))
             throw new ObjectNotFoundException("Пользователь с id=" + userId + " не найден");
         Film film = filmStorage.getFilms().get(filmId);
-        film.getFans().add(userId);
+        if (!film.getFans().contains(userId))   //Проверка на наличие лайка
+            film.getFans().add(userId);
         log.info("User (id=" + userId + ") liked film (id=" + filmId + ")");
         return film;
     }
@@ -72,7 +75,8 @@ public class FilmService {
         if (!userStorage.getUsers().containsKey(userId))
             throw new ObjectNotFoundException("Пользователь с id=" + userId + " не найден");
         Film film = filmStorage.getFilms().get(filmId);
-        film.getFans().remove(userId);
+        if (film.getFans().contains(userId))
+            film.getFans().remove(userId);
         log.info("User (id=" + userId + ") disliked film (id=" + filmId + ")");
         return film;
     }

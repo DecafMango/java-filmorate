@@ -47,45 +47,50 @@ public class UserService {
             throw new ObjectNotFoundException("Пользователь с id=" + id + " не найден");
         User user = users.get(id);
         log.info("Sent all user's (id=" + id + ") friends");
-        return user.getFriends().stream().map(users::get).collect(Collectors.toList());
+        return user.getFriends()
+                .stream()
+                .map(users::get)
+                .collect(Collectors.toList());
     }
 
     public List<User> getCommonFriends(long id, long otherId) {
-        Map<Long, User> users = userStorage.getUsers();
-        if (!users.containsKey(id))
-            throw new ObjectNotFoundException("Пользователь с id=" + id + " не найден");
-        if (!users.containsKey(otherId))
-            throw new ObjectNotFoundException("Пользователь с id=" + otherId + " не найден");
-        Set<Long> commonFriends = new HashSet<>(users.get(id).getFriends());
-        commonFriends.retainAll(users.get(otherId).getFriends());
+        Map<String, User> users = getTwoUsers(id, otherId);
+        Set<Long> commonFriends = new HashSet<>(users.get("user1").getFriends());
+        commonFriends.retainAll(users.get("user2").getFriends());
         log.info("Sent users' (id=" + id + "/" + otherId + ") common friends");
-        return commonFriends.stream().map(users::get).collect(Collectors.toList());
+        return commonFriends
+                .stream()
+                .map(userStorage.getUsers()::get)
+                .collect(Collectors.toList());
     }
 
     public void addFriend(long id, long friendId) {
-        Map<Long, User> users = userStorage.getUsers();
-        if (!users.containsKey(id))
-            throw new ObjectNotFoundException("Пользователь с id=" + id + " не найден");
-        if (!users.containsKey(friendId))
-            throw new ObjectNotFoundException("Пользователь с id=" + friendId + " не найден");
-        User user = users.get(id);
-        User friend = users.get(friendId);
-        user.getFriends().add(friendId);
-        friend.getFriends().add(id);
+        Map<String, User> users = getTwoUsers(id, friendId);
+        users.get("user1").getFriends().add(friendId);
+        users.get("user2").getFriends().add(id);
         log.info("Users (id=" + id + "/" + friendId + ") made friend relationships");
     }
 
     public void deleteFriend(long id, long friendId) {
-        Map<Long, User> users = userStorage.getUsers();
-        if (!users.containsKey(id))
-            throw new ObjectNotFoundException("Пользователь с id=" + id + " не найден");
-        if (!users.containsKey(friendId))
-            throw new ObjectNotFoundException("Пользователь с id=" + friendId + " не найден");
-        User user = users.get(id);
-        User friend = users.get(friendId);
-        user.getFriends().remove(friendId);
-        friend.getFriends().remove(id);
+        Map<String, User> users = getTwoUsers(id, friendId);
+        users.get("user1").getFriends().remove(friendId);
+        users.get("user2").getFriends().remove(id);
         log.info("Users (id=" + id + "/" + friendId + ") broke friend relationships");
     }
 
+    private Map<String, User> getTwoUsers(long id1, long id2) {
+        Map<Long, User> users = userStorage.getUsers();
+        if (!users.containsKey(id1))
+            throw new ObjectNotFoundException("Пользователь с id=" + id1 + " не найден");
+        if (!users.containsKey(id2))
+            throw new ObjectNotFoundException("Пользователь с id=" + id2 + " не найден");
+        User user1 = users.get(id1);
+        User user2 = users.get(id2);
+
+        Map<String, User> result = new HashMap<>();
+        result.put("user1", user1);
+        result.put("user2", user2);
+
+        return result;
+    }
 }
