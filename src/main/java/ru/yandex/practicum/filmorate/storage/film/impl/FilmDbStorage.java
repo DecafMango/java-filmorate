@@ -140,7 +140,7 @@ public class FilmDbStorage implements FilmStorage {
             jdbcTemplate.update(updateFilmGenres, film.getId(), genre.getId());
         }
         log.info("Updated " + film);
-        return film;
+        return getFilms().get(film.getId());
     }
 
     @Override
