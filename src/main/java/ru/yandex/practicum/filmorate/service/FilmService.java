@@ -2,83 +2,115 @@ package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.ObjectNotFoundException;
-import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.film.Film;
+import ru.yandex.practicum.filmorate.model.film.Genre;
+import ru.yandex.practicum.filmorate.model.film.Mpa;
+import ru.yandex.practicum.filmorate.model.user.User;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
-import ru.yandex.practicum.filmorate.storage.film.InMemoryFilmStorage;
-import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class FilmService {
 
-    private final FilmStorage filmStorage;
-    private final UserStorage userStorage;
-
     @Autowired
-    public FilmService(InMemoryFilmStorage filmStorage, InMemoryUserStorage userStorage) {
-        this.filmStorage = filmStorage;
-        this.userStorage = userStorage;
+    @Qualifier("dbStorage")
+    private FilmStorage filmStorage;
+    @Autowired
+    @Qualifier("dbStorage")
+    private UserStorage userStorage;
+
+
+    public Film createFilm(Film film) {
+        return filmStorage.createFilm(film);
     }
 
-    public void createFilm(Film film) {
-        filmStorage.createFilm(film);
+    public Film updateFilm(Film film) {
+        return filmStorage.updateFilm(film);
     }
 
-    public void updateFilm(Film film) {
-        filmStorage.updateFilm(film);
-    }
-
-    public Film getFilm(long id) {
+    public Film getFilm(int id) {
         if (!filmStorage.getFilms().containsKey(id))
             throw new ObjectNotFoundException("Фильм с id=" + id + " не найден");
         log.info("Sent film (id=" + id + ")");
         return filmStorage.getFilms().get(id);
     }
 
-    public Map<Long, Film> getFilms() {
+    public Map<Integer, Film> getFilms() {
         return filmStorage.getFilms();
     }
 
-    public List<Film> getPopularFilms(Optional<Long> count) {
+    public List<Film> getPopularFilms(Optional<Integer> count) {
         Collection<Film> films = filmStorage.getFilms().values();
         log.info("Sent " + (count.isPresent() ? count.get() : 10) + " popular films");
         return films.stream()
-                .sorted((film1, film2) -> film2.getFans().size() - film1.getFans().size())
+                .sorted((film1, film2) -> film2.getFollowers().size() - film1.getFollowers().size())
                 .limit(count.isPresent() ? count.get() : 10)
                 .collect(Collectors.toList());
     }
 
-    public Film like(long filmId, long userId) {
-        if (!filmStorage.getFilms().containsKey(filmId))
-            throw new ObjectNotFoundException("Фильм с id=" + filmId + " не найден");
-        if (!userStorage.getUsers().containsKey(userId))
-            throw new ObjectNotFoundException("Пользователь с id=" + userId + " не найден");
-        Film film = filmStorage.getFilms().get(filmId);
-        if (!film.getFans().contains(userId))   //Проверка на наличие лайка
-            film.getFans().add(userId);
+    public Film like(int filmId, int userId) {
+        Map<String, Object> filmAndUser = getFilmUser(filmId, userId);
+        Film film = (Film) filmAndUser.get("film");
+        User user = (User) filmAndUser.get("user");
+        if (!film.getFollowers().contains(user))   //Проверка на наличие лайка
+            film.getFollowers().add(user);
+        filmStorage.updateFilm(film);
         log.info("User (id=" + userId + ") liked film (id=" + filmId + ")");
         return film;
     }
 
-    public Film dislike(long filmId, long userId) {
-        if (!filmStorage.getFilms().containsKey(filmId))
-            throw new ObjectNotFoundException("Фильм с id=" + filmId + " не найден");
-        if (!userStorage.getUsers().containsKey(userId))
-            throw new ObjectNotFoundException("Пользователь с id=" + userId + " не найден");
-        Film film = filmStorage.getFilms().get(filmId);
-        if (film.getFans().contains(userId))
-            film.getFans().remove(userId);
+    public Film dislike(int filmId, int userId) {
+        Map<String, Object> filmAndUser = getFilmUser(filmId, userId);
+        Film film = (Film) filmAndUser.get("film");
+        User user = (User) filmAndUser.get("user");
+
+        if (film.getFollowers().contains(user)) //Проверка на наличие лайка
+            film.getFollowers().remove(user);
         log.info("User (id=" + userId + ") disliked film (id=" + filmId + ")");
         return film;
+    }
+
+    public Genre getGenre(int id) {
+        Map<Integer, Genre> genres = filmStorage.getGenres();
+        if (!genres.containsKey(id))
+            throw new ObjectNotFoundException("Жанр с id=" + id + " не найден");
+        return genres.get(id);
+    }
+
+    public Map<Integer, Genre> getGenres() {
+        return filmStorage.getGenres();
+    }
+
+    public Mpa getMpa(int id) {
+        Map<Integer, Mpa> mpa = filmStorage.getMpa();
+        if (!mpa.containsKey(id))
+            throw new ObjectNotFoundException("Рейтинг с id=" + id + " не найден");
+        return mpa.get(id);
+    }
+
+    public Map<Integer, Mpa> getAllMpa() {
+        return filmStorage.getMpa();
+    }
+
+    private Map<String, Object> getFilmUser(int filmId, int userId) {
+        Map<Integer, Film> films = filmStorage.getFilms();
+        Map<Integer, User> users = userStorage.getUsers();
+        if (!films.containsKey(filmId))
+            throw new ObjectNotFoundException("Фильм с id=" + filmId + " не найден");
+        if (!users.containsKey(userId))
+            throw new ObjectNotFoundException("Пользователь с id=" + userId + " не найден");
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("film", films.get(filmId));
+        result.put("user", users.get(userId));
+        return result;
     }
 
 }
